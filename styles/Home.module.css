@@ -130,6 +130,15 @@
   z-index: -1;
 }
 
+.promptInput {
+  font: 15px Helvetica, Arial, sans-serif;
+}
+
+.response{
+  font: 15px Helvetica, Arial, sans-serif;
+  height: auto;
+}
+
 /* Conic Gradient Animation */
 .thirteen::before {
   animation: 6s rotate linear infinite;
