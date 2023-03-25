@@ -6,7 +6,7 @@ module.exports = () => {
   const rewrites = () => {
     return [
       {
-        source: "/hello/:path*",
+        source: "/api/:path*",
         destination: "http://localhost:5000/hello/:path*",
       },
     ];
@@ -16,3 +16,5 @@ module.exports = () => {
   };
 };
 module.exports = nextConfig
+
+

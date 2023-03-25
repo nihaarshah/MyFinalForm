@@ -1,29 +1,37 @@
 import Head from "next/head";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "@/styles/Home.module.css";
+
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
+  
+  const [URL, setURL] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState("");
 
 
-  const getResponseFromOpenAI = async () => {
+const getResponseFromModal = async () => {
     setResponse("");
-    console.log("Getting response from OpenAI...");
+    console.log("Processing your question...");
     setIsLoading(true);
-    const response = await fetch("/api/openai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt: prompt }),
-    });
-
+  
+  const params2 = new URLSearchParams({
+    'query': String(prompt),
+    'url' : String(URL)
+  });
+  
+  const response = await fetch(`https://nihaarshah--example-kasakai-qanda.modal.run?${params2}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
     const data = await response.json();
     setIsLoading(false);
-    console.log(data.text);
-    setResponse(data.text);
+    console.log(data);
+    setResponse(data);
   };
 
   return (
@@ -34,7 +42,17 @@ export default function Home() {
 
       <main className={styles.main}>
         <div className={styles.description}>
-          <h1 className={styles.title}>Summarize this webpage for me </h1>
+          <h1 className={styles.title}> <div> Question Answer my website </div></h1>
+        </div>
+
+        <div>
+          <textarea 
+            className={styles.center}
+            row="15" 
+            cols="50"
+            placeholder="Enter a URL"
+            onChange={(e) => setURL(e.target.value)}
+          />
         </div>
 
         <div>
@@ -42,6 +60,7 @@ export default function Home() {
             className={styles.response}
             row="15" 
             cols="50"
+            placeholder="Your answer will appear here"
             value= {(isLoading) ? 'Waiting' :  JSON.stringify(response) }
           />
         </div>
@@ -56,7 +75,7 @@ export default function Home() {
           />
 
 
-          <button className={styles.button} onClick={getResponseFromOpenAI}>
+          <button className={styles.button} onClick={getResponseFromModal}>
             Get Response
           </button>
 
@@ -66,3 +85,4 @@ export default function Home() {
     </>
   );
 }
+
