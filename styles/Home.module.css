@@ -80,12 +80,14 @@
   padding: 4rem 0;
 }
 
+
 .center::before {
   background: var(--secondary-glow);
   border-radius: 50%;
   width: 480px;
   height: 360px;
   margin-left: -400px;
+  z-index: -1; 
 }
 
 .center::after {
@@ -102,6 +104,7 @@
   position: absolute;
   filter: blur(45px);
   transform: translateZ(0);
+  z-index: -1; 
 }
 
 .logo,
@@ -205,11 +208,6 @@
 
   .center {
     padding: 8rem 0 6rem;
-  }
-
-  .center::before {
-    transform: none;
-    height: 300px;
   }
 
   .description {

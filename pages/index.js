@@ -16,7 +16,7 @@ const getResponseFromModal = async () => {
     setResponse("");
     console.log("Processing your question...");
     setIsLoading(true);
-  
+
   const params2 = new URLSearchParams({
     'query': String(prompt),
     'url' : String(URL)
@@ -29,10 +29,11 @@ const getResponseFromModal = async () => {
     },
   });
     const data = await response.json();
-    setIsLoading(false);
+    
     console.log(data);
     setResponse(data);
   };
+
 
   return (
     <>
@@ -51,17 +52,19 @@ const getResponseFromModal = async () => {
             row="15" 
             cols="50"
             placeholder="Enter a URL"
+            value = {URL}
             onChange={(e) => setURL(e.target.value)}
           />
         </div>
 
         <div>
           <textarea 
-            className={styles.response}
+            className={styles.center}
             row="15" 
             cols="50"
             placeholder="Your answer will appear here"
-            value= {(isLoading) ? 'Waiting' :  JSON.stringify(response) }
+            value= {isLoading ? response : 'Processing your question' }
+            readOnly={true}
           />
         </div>
 
@@ -70,15 +73,16 @@ const getResponseFromModal = async () => {
             className={styles.promptInput}
             placeholder="Enter a prompt"
             onChange={(e) => setPrompt(e.target.value)}
+            value = {prompt}
             row="5"
             cols="50"
           />
 
-
+        <div>
           <button className={styles.button} onClick={getResponseFromModal}>
             Get Response
           </button>
-
+        </div>
 
         </div>
       </main>
