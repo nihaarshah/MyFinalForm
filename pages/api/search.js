@@ -10,7 +10,7 @@ const chat = new ChatOpenAI({ temperature: 0 });
 
 export default async function search(req, res) {
   //   middleware(req);
-  let question = req.body;
+  let question = req.body.labelText;
   //   let question = JSON.parse(req.body);
   //   console.log(question["questionText"]);
 
