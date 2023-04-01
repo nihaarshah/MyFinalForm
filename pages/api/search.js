@@ -1,7 +1,5 @@
 import { ChatOpenAI } from "langchain/chat_models";
 import { HumanChatMessage, SystemChatMessage } from "langchain/schema";
-import { OpenAI } from "langchain/llms";
-import { loadSummarizationChain } from "langchain/chains";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
@@ -36,108 +34,70 @@ const callback = async function (data) {
       });
   });
 
-  // console.log("EXTRACTED TEXT: ", extractedText);
-
   return extractedText;
-  // Now you can use the extracted text here
 };
-
-// response = await chat.call([
-//   new SystemChatMessage(
-//     "You are a helpful assistant that translates English to French."
-//   ),
-//   new HumanChatMessage("Translate: I love programming."),
-// ]);
 
 export default async function search(req, res) {
   const text = await callback();
 
-  // text.forEach((element) => {
-  //   if (element.length < 10) {
-  //     text.splice(text.indexOf(element), 1);
-  //   }
-  // });
-
-  const doc = `
-  Founder/CEO linkedIn: https://www.linkedin.com/in/stevenliss/
-  Co-foudner/CTO linkedin: https://www.linkedin.com/in/michael-bishop-483aa874/
-
-  Company name: OpenAds
-  Company website: https://openads.ai/
-
-  Location: NYC
-
-  Raised any capital yet?: yes
-  Amount raised: $222k
-
-  Revenue last year: $0
-  Projected revenue this year: $10k-$100k
-
-  What problem do you solve?:
-  [OpenAds](https://openads.ai/) is search advertising for generative AI services. Every consumer AI company has a problem: compute is expensive, but they can't scale revenue via traditional ad solutions that rely on analyzing static content (AdX inventory isn’t even allowed on AI content).
-
-  OpenAds uses zero-party data from AI prompts to target ads, and LLMs to adapt ad creatives in real-time to fit the publisher AI’s output.
-
-  What excites you most about your company’s long-term potential? If your wildest dreams come true, what will this company be?
-  AI is expanding the realm of possible search queries beyond Google's current search market (already $100B/year). Best case: we become the "AdSense for AI" that pays to keep AI free and accessible (i.e. "Open") to the public. If one of our AI clients becomes the next Google/Meta, we'll be their monetization layer.
-
-  Calendly link: https://calendly.com/steven-openads
-
-  Big idea:Prompt-based "search ads" let us to support and monetize the massive new ecosystem of consumer AI apps. That's an enormous business, but it positions us for a bigger shift:
-  How people store data on the internet is going to shift from static text (HTTP as a protocol) to unstructured data (embeddings, data lakes, etc) that require an AI interface to consume. Today, websites are like reading a book; in 3-10 years they'll be like talking to a person. ChatGPT is a preview. The post-hypertext internet will need an AI-native ad solution like ours.
-       `;
-
-  // let response = await chat.call([
-  //   new SystemChatMessage(
-  //     "You are a masterful data analyst. You excel at taking in textual data and extracting useful information about people given only the input text and nothing else. You ignore all irrelevant information."
-  //   ),
-  //   new HumanChatMessage(
-  //     "Return analyses of the following VCs while infering personality characteristics that would influence their decision making: " +
-  //       text.join(" ")
-  //   ),
-  // ]);
-
-  // prob upsert to db
-
-  const model = new OpenAI({
-    temperature: 0,
-    openAIApiKey: process.env.OPENAI_API_KEY,
+  // remove brief text
+  text.forEach((element) => {
+    if (element.length < 10) {
+      text.splice(text.indexOf(element), 1);
+    }
   });
+
+  // get summaries for VCs
+  let ventureDescriptions = await chat.call([
+    new SystemChatMessage(
+      "You are a masterful data summarizer. You excel at taking in textual data and extracting useful information about venture capitalists given only the input text and nothing else. You ignore all irrelevant information."
+    ),
+    new HumanChatMessage(
+      "Return analyses of the following VCs while infering personality characteristics that would influence their decision making: " +
+        text.join(" ")
+    ),
+  ]);
+
   const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000 });
-  const docs = await textSplitter.createDocuments([doc]);
+  const docs = await textSplitter.createDocuments([
+    req.body.companyDescription,
+  ]);
 
-  docs.forEach((element) => {
-    console.log(element.pageContent);
-    console.log("--------------------------------------------------");
-  });
-
-  // upsert docs content to db
-
-  // console.log(docs);
-  // const chain = loadSummarizationChain(model);
-  // const langResp = await chain.call({
-  //   input_documents: docs,
+  // prob use this for each to upload comp desc to vector db to access on form fill
+  // docs.forEach((element) => {
+  // upsert element.pageContent here
   // });
-  // console.log(langResp);
 
-  // let response2 = await chat.call([
-  //   new SystemChatMessage(
-  //     "You are a liasion between venture capitalists and potential founders. You match a founder to a venture capitalist based on fit and potential. You are a master at reading between the lines and understanding the true meaning of a founder's words. You only select names from the list of partners and their corresponding description. "
-  //   ),
-  //   new HumanChatMessage(
-  //     `Match the following company portfolio to the correct venture capitalist:
+  // get summary of company
+  let summary = await chat.call([
+    new SystemChatMessage(
+      "You are a masterful summarizer of company descriptions. You take in large amounts of text and return at most 300 characters describing the company."
+    ),
+    new HumanChatMessage(
+      "Summarize the following company description: " + req.body
+    ),
+  ]);
 
-  //     Potential Venture Capitalists
-  //     ${response.text}
+  // match a partner to company
+  // LOG THIS FOR DEMO
+  let partnerMatch = await chat.call([
+    new SystemChatMessage(
+      "You are a liasion between venture capitalists and potential founders making a perfect match based on personality and industry. You only select names from the list of partners and their corresponding description. "
+    ),
+    new HumanChatMessage(
+      `Match the following company portfolio to the correct venture capitalist and return a psychological analysis of the venture capitalist's personality:
 
-  //     Company Portfolio
-  //      `
-  //   ),
-  // ]);
+      Potential Venture Capitalists
+      ${ventureDescriptions.text}
 
-  // query instead of having it perform reasoning unless we want to show that
+      Company Portfolio
+      ${summary.text}
+       `
+    ),
+  ]);
 
-  // console.log(response);
+  localStorage.setItem("partnerMatch", partnerMatch.text);
 
+  // somehow need to pipe this into the form -> local storage?
   return res.status(200).json({ message: "" });
 }

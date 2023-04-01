@@ -13,7 +13,7 @@ import {
   Textarea,
   useToast,
 } from "@chakra-ui/react";
-import React, { useState } from "react";
+import React, { useRef } from "react";
 
 // const res = await model.call(
 //   "What would be a good company name a company that makes colorful socks?"
@@ -25,7 +25,7 @@ import React, { useState } from "react";
 export default function Home() {
   const toast = useToast();
 
-  const [startup, setStartup] = useState("");
+  const startupDesc = useRef();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -49,7 +49,10 @@ export default function Home() {
           <Stack spacing={6}>
             <FormControl id="startupIdea">
               <FormLabel>Startup Idea</FormLabel>
-              <Textarea placeholder="Enter your startup idea" />
+              <Textarea
+                placeholder="Enter your startup idea"
+                ref={startupDesc}
+              />
             </FormControl>
 
             <FormControl id="otherData">
@@ -60,8 +63,17 @@ export default function Home() {
             <FormControl id="generateFromProfiles">
               <Button
                 onClick={async () => {
-                  await (await fetch("/api/search")).json();
-                  // console.log(await (await fetch("/api/search")).json());
+                  await (
+                    await fetch("/api/search", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        companyDescription: startupDesc.current.value,
+                      }),
+                    })
+                  ).json();
                 }}
               >
                 Generate from Profiles
