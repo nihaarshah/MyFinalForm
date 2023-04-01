@@ -7,9 +7,14 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^2.5.5",
+    "@dqbd/tiktoken": "^1.0.2",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
+    "cheerio": "*",
+    "dom-parser": "^0.1.6",
     "framer-motion": "^10.10.0",
+    "google-search-results-nodejs": "^2.1.0",
+    "langchain": "^0.0.45",
     "next": "latest",
     "react": "18.2.0",
     "react-dom": "18.2.0"
