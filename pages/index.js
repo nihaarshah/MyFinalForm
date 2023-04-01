@@ -13,6 +13,7 @@ import {
   Textarea,
   useToast,
 } from "@chakra-ui/react";
+import React, { useState } from "react";
 
 // const res = await model.call(
 //   "What would be a good company name a company that makes colorful socks?"
@@ -23,6 +24,8 @@ import {
 
 export default function Home() {
   const toast = useToast();
+
+  const [startup, setStartup] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -57,7 +60,9 @@ export default function Home() {
             <FormControl id="generateFromProfiles">
               <Button
                 onClick={async () => {
-                  console.log(await (await fetch("/api/search")).json());
+                  setStartup(
+                    await (await fetch("/api/search")).json()["message"]
+                  );
                 }}
               >
                 Generate from Profiles
