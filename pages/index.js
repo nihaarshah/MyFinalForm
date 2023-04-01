@@ -15,13 +15,6 @@ import {
 } from "@chakra-ui/react";
 import React, { useRef } from "react";
 
-// const res = await model.call(
-//   "What would be a good company name a company that makes colorful socks?"
-// );
-// console.log(res);
-
-// console.log(search());
-
 export default function Home() {
   const toast = useToast();
 
@@ -68,8 +61,8 @@ export default function Home() {
               type="submit"
               colorScheme="blue"
               onClick={async () => {
-                await (
-                  await fetch("/api/search", {
+                let local = await (
+                  await fetch("/api/process-company", {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -80,6 +73,9 @@ export default function Home() {
                     }),
                   })
                 ).json();
+
+                localStorage.setItem("partnerMatch", local.partnerMatch);
+                localStorage.setItem("companySummary", local.companySummary);
               }}
             >
               Submit

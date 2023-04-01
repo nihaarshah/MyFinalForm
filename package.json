@@ -10,12 +10,15 @@
     "@dqbd/tiktoken": "^1.0.2",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
+    "@pinecone-database/pinecone": "^0.0.12",
     "cheerio": "*",
+    "cors": "^2.8.5",
     "dom-parser": "^0.1.6",
     "framer-motion": "^10.10.0",
     "google-search-results-nodejs": "^2.1.0",
     "langchain": "^0.0.45",
     "next": "latest",
+    "nextjs-cors": "^2.1.2",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   }

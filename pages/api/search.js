@@ -1,108 +1,111 @@
+import { OpenAIEmbeddings } from "langchain/embeddings";
+import { PineconeClient } from "@pinecone-database/pinecone";
+import { PineconeStore } from "langchain/vectorstores";
 import { ChatOpenAI } from "langchain/chat_models";
 import { HumanChatMessage, SystemChatMessage } from "langchain/schema";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-const fetch = require("node-fetch");
-const cheerio = require("cheerio");
+import NextCors from "nextjs-cors";
+// import { middleware } from "../../middleware";
 
-const chat = new ChatOpenAI({
-  temperature: 0,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
-
-const SerpApi = require("google-search-results-nodejs");
-const search1 = new SerpApi.GoogleSearch(process.env.SERP_API_KEY);
-
-const callback = async function (data) {
-  const extractedText = await new Promise((resolve, reject) => {
-    // need to use serp to get a search result for diff firms
-    fetch("https://greylock.wpengine.com/team/")
-      .then((response) => response.text())
-      .then((html) => {
-        const $ = cheerio.load(html);
-        const textTags = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "span"];
-        let extractedText = [];
-        textTags.forEach((tag) => {
-          $(tag).each((_, element) => {
-            extractedText.push($(element).text().trim());
-          });
-        });
-        resolve(extractedText);
-      })
-      .catch((error) => {
-        reject(error);
-      });
-  });
-
-  return extractedText;
-};
+const chat = new ChatOpenAI({ temperature: 0 });
 
 export default async function search(req, res) {
-  const text = await callback();
+  //   middleware(req);
+  let question = req.body;
+  //   let question = JSON.parse(req.body);
+  //   console.log(question["questionText"]);
 
-  // remove brief text
-  text.forEach((element) => {
-    console.log(element);
-    if (element.length < 10) {
-      text.splice(text.indexOf(element), 1);
-    }
+  await NextCors(req, res, {
+    // Options
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+    origin: "*",
+    optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
   });
 
-  // get summaries for VCs
-  let ventureDescriptions = await chat.call([
+  const client = new PineconeClient();
+
+  await client.init({
+    apiKey: process.env.PINECONE_API_KEY,
+    environment: process.env.PINECONE_ENVIRONMENT,
+  });
+
+  const pineconeIndex = client.Index("startup-data");
+
+  const vectorStore = await PineconeStore.fromExistingIndex(
+    new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
+    { pineconeIndex }
+  );
+
+  //   query for partner
+  const partnerResp = await pineconeIndex.query({
+    queryRequest: {
+      topK: 1,
+      filter: { id: { $eq: "partner-match" } },
+      includeValues: true,
+      includeMetadata: true,
+      vector: new Array(1536).fill(0),
+    },
+  });
+
+  // query for summary
+  const summaryResp = await pineconeIndex.query({
+    queryRequest: {
+      topK: 1,
+      filter: { id: { $eq: "company-summary" } },
+      includeValues: true,
+      includeMetadata: true,
+      vector: new Array(1536).fill(0),
+    },
+  });
+
+  let companySummary = summaryResp["matches"][0]["metadata"]["text"];
+  let partnerMatch = partnerResp["matches"][0]["metadata"]["text"];
+
+  //   let companySummary = "Great group of adtech investors";
+  //   let partnerMatch = "deep adtech experience";
+
+  console.log(companySummary);
+  console.log(partnerMatch);
+
+  console.log("STARTED HALLUCINATION");
+
+  const hallucinatedQuery = await chat.call([
     new SystemChatMessage(
-      "You are a masterful data summarizer. You excel at taking in textual data and extracting useful information about venture capitalists given only the input text and nothing else. You ignore all irrelevant information."
+      `You come up with an answer for a company given their description even if it is fake. Answer concisely and always within the bounds of the question if it denotes the number of words.`
     ),
     new HumanChatMessage(
-      "Return analyses of the following VCs while infering personality characteristics that would influence their decision making: " +
-        text.join(" ")
+      `The company description is ${companySummary}. The question to answer is: ${question}`
     ),
   ]);
 
-  // split text for founder and company descs
-  const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000 });
-  const docs = await textSplitter.createDocuments([
-    req.body.companyDescription,
-    req.body.founderDescription,
-  ]);
+  console.log("ENDED HALLUCINATION: " + hallucinatedQuery.text);
 
-  // // prob use this for each to upload comp desc to vector db to access on form fill
-  docs.forEach((element) => {
+  const relevantData = await vectorStore.similaritySearch(
+    `${question} ${hallucinatedQuery.text}`,
+    3
+  );
+
+  console.log("RELEVANT: " + relevantData);
+
+  let relevantDataText = [];
+
+  relevantData.forEach((element) => {
     console.log(element.pageContent);
-    console.log("------------------ END OF DOC ------------------");
-    // upsert element.pageContent here
+    relevantDataText.push(element.pageContent);
   });
 
-  //   // // get summary of company
-  let summary = await chat.call([
+  console.log("STARTED ANSWER ");
+  const answer = await chat.call([
     new SystemChatMessage(
-      "You are a masterful summarizer of company descriptions. You take in large amounts of text and return at most 300 characters describing the company."
+      `Given the following information you answer a given question. If the information is not sufficient start with BULLSHIT INCOMING and then continue with the response
+                You are persuading a person with the following description so be sure to write in a way most appealing to them: ${partnerMatch}`
     ),
     new HumanChatMessage(
-      "Summarize the following company description: " + req.body
+      `The company description is ${companySummary}. The relevant information is:${relevantDataText.join(
+        "\n"
+      )}.The question to answer is: ${question}`
     ),
   ]);
+  console.log("ENDED ANSWER: " + answer.text);
 
-  //   // // match a partner to company
-  console.log("Thinking about what partner to match you with...");
-  let partnerMatch = await chat.call([
-    new SystemChatMessage(
-      "You are a liasion between venture capitalists and potential founders making a perfect match based on personality and industry. You only select names from the list of partners and their corresponding description. "
-    ),
-    new HumanChatMessage(
-      `Match the following company portfolio to the correct venture capitalist and return a psychological analysis of the venture capitalist's personality:
-
-        Potential Venture Capitalists
-        ${ventureDescriptions.text}
-
-        Company Portfolio
-        ${summary.text}
-         `
-    ),
-  ]);
-  console.log("The match is: " + partnerMatch.text);
-
-  localStorage.setItem("partnerMatch", partnerMatch.text);
-
-  // somehow need to pipe this into the form -> local storage?
-  return res.status(200).json({ message: "" });
+  return res.status(200).json({ answer: answer.text });
 }
