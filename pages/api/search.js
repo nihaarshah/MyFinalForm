@@ -16,7 +16,8 @@ let returnData;
 
 const callback = async function (data) {
   const extractedText = await new Promise((resolve, reject) => {
-    fetch("https://www.ycombinator.com/people")
+    // need to use serp to get a search result for diff firms
+    fetch("https://greylock.wpengine.com/team/")
       .then((response) => response.text())
       .then((html) => {
         const $ = cheerio.load(html);
@@ -42,6 +43,7 @@ export default async function search(req, res) {
 
   // remove brief text
   text.forEach((element) => {
+    console.log(element);
     if (element.length < 10) {
       text.splice(text.indexOf(element), 1);
     }
@@ -63,12 +65,12 @@ export default async function search(req, res) {
     req.body.companyDescription,
   ]);
 
-  // prob use this for each to upload comp desc to vector db to access on form fill
-  // docs.forEach((element) => {
-  // upsert element.pageContent here
-  // });
+  // // prob use this for each to upload comp desc to vector db to access on form fill
+  // // docs.forEach((element) => {
+  // // upsert element.pageContent here
+  // // });
 
-  // get summary of company
+  // // get summary of company
   let summary = await chat.call([
     new SystemChatMessage(
       "You are a masterful summarizer of company descriptions. You take in large amounts of text and return at most 300 characters describing the company."
@@ -78,8 +80,8 @@ export default async function search(req, res) {
     ),
   ]);
 
-  // match a partner to company
-  // LOG THIS FOR DEMO
+  // // match a partner to company
+  console.log("Thinking about what partner to match you with...");
   let partnerMatch = await chat.call([
     new SystemChatMessage(
       "You are a liasion between venture capitalists and potential founders making a perfect match based on personality and industry. You only select names from the list of partners and their corresponding description. "
@@ -95,9 +97,10 @@ export default async function search(req, res) {
        `
     ),
   ]);
+  console.log("The match is: " + partnerMatch.text);
 
   localStorage.setItem("partnerMatch", partnerMatch.text);
 
-  // somehow need to pipe this into the form -> local storage?
+  // // somehow need to pipe this into the form -> local storage?
   return res.status(200).json({ message: "" });
 }
