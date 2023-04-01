@@ -60,9 +60,8 @@ export default function Home() {
             <FormControl id="generateFromProfiles">
               <Button
                 onClick={async () => {
-                  setStartup(
-                    await (await fetch("/api/search")).json()["message"]
-                  );
+                  await (await fetch("/api/search")).json();
+                  // console.log(await (await fetch("/api/search")).json());
                 }}
               >
                 Generate from Profiles
