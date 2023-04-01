@@ -12,8 +12,6 @@ const chat = new ChatOpenAI({
 const SerpApi = require("google-search-results-nodejs");
 const search1 = new SerpApi.GoogleSearch(process.env.SERP_API_KEY);
 
-let returnData;
-
 const callback = async function (data) {
   const extractedText = await new Promise((resolve, reject) => {
     // need to use serp to get a search result for diff firms
@@ -60,17 +58,21 @@ export default async function search(req, res) {
     ),
   ]);
 
+  // split text for founder and company descs
   const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000 });
   const docs = await textSplitter.createDocuments([
     req.body.companyDescription,
+    req.body.founderDescription,
   ]);
 
   // // prob use this for each to upload comp desc to vector db to access on form fill
-  // // docs.forEach((element) => {
-  // // upsert element.pageContent here
-  // // });
+  docs.forEach((element) => {
+    console.log(element.pageContent);
+    console.log("------------------ END OF DOC ------------------");
+    // upsert element.pageContent here
+  });
 
-  // // get summary of company
+  //   // // get summary of company
   let summary = await chat.call([
     new SystemChatMessage(
       "You are a masterful summarizer of company descriptions. You take in large amounts of text and return at most 300 characters describing the company."
@@ -80,7 +82,7 @@ export default async function search(req, res) {
     ),
   ]);
 
-  // // match a partner to company
+  //   // // match a partner to company
   console.log("Thinking about what partner to match you with...");
   let partnerMatch = await chat.call([
     new SystemChatMessage(
@@ -89,18 +91,18 @@ export default async function search(req, res) {
     new HumanChatMessage(
       `Match the following company portfolio to the correct venture capitalist and return a psychological analysis of the venture capitalist's personality:
 
-      Potential Venture Capitalists
-      ${ventureDescriptions.text}
+        Potential Venture Capitalists
+        ${ventureDescriptions.text}
 
-      Company Portfolio
-      ${summary.text}
-       `
+        Company Portfolio
+        ${summary.text}
+         `
     ),
   ]);
   console.log("The match is: " + partnerMatch.text);
 
   localStorage.setItem("partnerMatch", partnerMatch.text);
 
-  // // somehow need to pipe this into the form -> local storage?
+  // somehow need to pipe this into the form -> local storage?
   return res.status(200).json({ message: "" });
 }

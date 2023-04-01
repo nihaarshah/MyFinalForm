@@ -49,7 +49,7 @@ export default function Home() {
         <form onSubmit={handleSubmit}>
           <Stack spacing={6}>
             <FormControl id="startupIdea">
-              <FormLabel>Startup Idea</FormLabel>
+              <FormLabel>Startup Description</FormLabel>
               <Textarea
                 placeholder="Enter your startup idea"
                 ref={startupDesc}
