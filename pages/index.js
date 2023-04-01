@@ -26,6 +26,7 @@ export default function Home() {
   const toast = useToast();
 
   const startupDesc = useRef();
+  const founderDesc = useRef();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -42,7 +43,7 @@ export default function Home() {
     <ChakraProvider>
       <Container maxW="container.xl">
         <Heading as="h1" size="2xl" textAlign="center" my={8}>
-          Final Form
+          📜 Final Form 📜
         </Heading>
 
         <form onSubmit={handleSubmit}>
@@ -56,36 +57,31 @@ export default function Home() {
             </FormControl>
 
             <FormControl id="otherData">
-              <FormLabel>Other Data</FormLabel>
-              <Textarea placeholder="Enter any additional information" />
+              <FormLabel>Founder Information</FormLabel>
+              <Textarea
+                placeholder="Enter any additional information"
+                ref={founderDesc}
+              />
             </FormControl>
 
-            <FormControl id="generateFromProfiles">
-              <Button
-                onClick={async () => {
-                  await (
-                    await fetch("/api/search", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        companyDescription: startupDesc.current.value,
-                      }),
-                    })
-                  ).json();
-                }}
-              >
-                Generate from Profiles
-              </Button>
-            </FormControl>
-
-            <FormControl id="fileSelector">
-              <FormLabel>Attach Files</FormLabel>
-              <Input type="file" onChange={() => {}} />
-            </FormControl>
-
-            <Button type="submit" colorScheme="blue">
+            <Button
+              type="submit"
+              colorScheme="blue"
+              onClick={async () => {
+                await (
+                  await fetch("/api/search", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      companyDescription: startupDesc.current.value,
+                      founderDescription: founderDesc.current.value,
+                    }),
+                  })
+                ).json();
+              }}
+            >
               Submit
             </Button>
           </Stack>
