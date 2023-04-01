@@ -23,17 +23,17 @@ export default async function search(req, res) {
 
   const client = new PineconeClient();
 
-  // await client.init({
-  //   apiKey: process.env.PINECONE_API_KEY,
-  //   environment: process.env.PINECONE_ENVIRONMENT,
-  // });
+  await client.init({
+    apiKey: process.env.PINECONE_API_KEY,
+    environment: process.env.PINECONE_ENVIRONMENT,
+  });
 
-  // const pineconeIndex = client.Index("startup-data");
+  const pineconeIndex = client.Index("startup-data");
 
-  // const vectorStore = await PineconeStore.fromExistingIndex(
-  //   new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
-  //   { pineconeIndex }
-  // );
+  const vectorStore = await PineconeStore.fromExistingIndex(
+    new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
+    { pineconeIndex }
+  );
 
   // //   query for partner
   // const partnerResp = await pineconeIndex.query({
@@ -70,32 +70,32 @@ export default async function search(req, res) {
   // console.log(companySummary);
   // console.log(partnerMatch);
 
-  // console.log("STARTED HALLUCINATION");
+  console.log("STARTED HALLUCINATION");
 
-  // const hallucinatedQuery = await chat.call([
-  //   new SystemChatMessage(
-  //     `You come up with an answer for a company given their description even if it is fake. Answer concisely and always within the bounds of the question if it denotes the number of words.`
-  //   ),
-  //   new HumanChatMessage(
-  //     `The company description is ${companySummary}. The question to answer is: ${question}`
-  //   ),
-  // ]);
+  const hallucinatedQuery = await chat.call([
+    new SystemChatMessage(
+      `You come up with an answer for a company given their description even if it is fake. Answer concisely and always within the bounds of the question if it denotes the number of words.`
+    ),
+    new HumanChatMessage(
+      `The company description is ${companySummary}. The question to answer is: ${question}`
+    ),
+  ]);
 
-  // console.log("ENDED HALLUCINATION: " + hallucinatedQuery.text);
+  console.log("ENDED HALLUCINATION: " + hallucinatedQuery.text);
 
-  // const relevantData = await vectorStore.similaritySearch(
-  //   `${question} ${hallucinatedQuery.text}`,
-  //   3
-  // );
+  const relevantData = await vectorStore.similaritySearch(
+    `${question} ${hallucinatedQuery.text}`,
+    3
+  );
 
-  // console.log("RELEVANT: " + relevantData);
+  console.log("RELEVANT: " + relevantData);
 
-  // let relevantDataText = [];
+  let relevantDataText = [];
 
-  // relevantData.forEach((element) => {
-  //   console.log(element.pageContent);
-  //   relevantDataText.push(element.pageContent);
-  // });
+  relevantData.forEach((element) => {
+    console.log(element.pageContent);
+    relevantDataText.push(element.pageContent);
+  });
 
   console.log("STARTED ANSWER ");
   const answer = await chat.call([
@@ -103,7 +103,7 @@ export default async function search(req, res) {
       `you are a bubbly, fun tiktoker who writes mostly using emojis. you are pitching a startup to a VC. here's a summary of your startup: ${companySummary}`
     ),
     new HumanChatMessage(
-      `Reply to this question from a venture capitalist you are pitching: ${question}`
+      `Reply succinctly, but with LOTS of emojis to this question from a venture capitalist you are pitching: ${question}. Use the following data to inform your answer: ${relevantDataText}`
     ),
   ]);
   console.log("ENDED ANSWER: " + answer.text);
